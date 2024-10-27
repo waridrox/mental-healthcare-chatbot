@@ -49,14 +49,14 @@ def initialize_models_and_store(document_chunks: list):
     Returns:
         tuple: Language model and vector retriever.
     """
-    groq_api_key = os.getenv('GROQ_API_KEY')
+    groq_api_key = st.secrets('GROQ_API_KEY')
     if not groq_api_key:
         raise ValueError("GROQ API key not found.")
     
-    groq_model_name = os.getenv('GROQ_MODEL_NAME')
+    groq_model_name = "Llama3-8b-8192"
     language_model = ChatGroq(groq_api_key=groq_api_key, model_name=groq_model_name)
 
-    embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME")
+    embedding_model_name = "sentence-transformers/all-MiniLM-L6-v2"
     embeddings_model = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={'device': "cpu"})
     vector_database = FAISS.from_documents(document_chunks, embeddings_model)
     retriever=vector_database.as_retriever()
