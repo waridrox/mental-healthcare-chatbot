@@ -29,9 +29,7 @@ def load_and_split_documents(chunk_size: int = 500, chunk_overlap: int = 50):
     Returns:
         list: List of document chunks.
     """
-    directory_path = os.getenv('DIRECTORY_PATH')
-    if not directory_path:
-        raise ValueError("Directory path not found.")
+    directory_path = "data"
     
     pdf_loader = DirectoryLoader(directory_path, glob="*.pdf", loader_cls=PyPDFLoader)
     pdf_documents = pdf_loader.load()
