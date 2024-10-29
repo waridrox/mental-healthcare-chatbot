@@ -1,69 +1,67 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_chroma import Chroma
+
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.prompts import MessagesPlaceholder
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.messages import HumanMessage
 
-# Load environment variables 
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_PROJECT"]="HealthCare Chatbot"
+
+# Load environment variables
 load_dotenv(override=True)
 
-
-def load_and_split_documents(chunk_size: int = 500, chunk_overlap: int = 50):
+def load_faiss_vector_store(db_directory_path: str = "faiss_db"):
     """
-    Load PDF documents from a directory and split them into chunks.
+    Load FAISS vector store.
 
     Args:
-        chunk_size (int): Size of each chunk.
-        chunk_overlap (int): Overlap between chunks.
-
+        db_directory_path (str): path to FAISS database.
     Returns:
-        list: List of document chunks.
+        FAISS vector store
     """
-    directory_path = "data"
+    try:
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={'device': "cpu"})
+        vector_store = FAISS.load_local(db_directory_path, embeddings, allow_dangerous_deserialization=True)
+
+        retriever=vector_store.as_retriever()
+
+        return retriever
     
-    pdf_loader = DirectoryLoader(directory_path, glob="*.pdf", loader_cls=PyPDFLoader)
-    pdf_documents = pdf_loader.load()
-
-    chunk_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    document_chunks = chunk_splitter.split_documents(pdf_documents)
-
-    return document_chunks
-
-def initialize_models_and_store(document_chunks: list):
+    except Exception as e:
+        raise e
+    
+def load_chroma_vector_store(db_directory_path: str = "chroma_db"):
     """
-    Initialize the language model and vector store.
+    Load Chroma vector store.
 
     Args:
-        document_chunks (list): List of document chunks.
-
+        db_directory_path (str): path to FAISS database
     Returns:
-        tuple: Language model and vector retriever.
+        FAISS vector store
     """
-    groq_api_key = st.secrets('GROQ_API_KEY')
-    if not groq_api_key:
-        raise ValueError("GROQ API key not found.")
+    try:
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={'device': "cpu"})
+        vector_store = Chroma(persist_directory=db_directory_path, embedding_function=embeddings) 
+
+        retriever=vector_store.as_retriever()
+
+        return retriever
     
-    groq_model_name = "Llama3-8b-8192"
-    language_model = ChatGroq(groq_api_key=groq_api_key, model_name=groq_model_name)
+    except Exception as e:
+        raise e
 
-    embedding_model_name = "sentence-transformers/all-MiniLM-L6-v2"
-    embeddings_model = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={'device': "cpu"})
-    vector_database = FAISS.from_documents(document_chunks, embeddings_model)
-    retriever=vector_database.as_retriever()
-
-    return language_model, retriever
-
-def create_conversational_chain(language_model: ChatGroq, retriever: FAISS):
+def create_conversational_chain(retriever: FAISS):
     """
     Create the conversational retrieval chain.
 
@@ -74,6 +72,13 @@ def create_conversational_chain(language_model: ChatGroq, retriever: FAISS):
     Returns:
         create_retrieval_chain: The conversational retrieval chain.
     """
+
+    groq_api_key = os.getenv('GROQ_API_KEY')
+    if not groq_api_key:
+        raise ValueError("GROQ API key not found.")
+    
+    groq_model_name = "Llama3-8b-8192"
+    language_model = ChatGroq(groq_api_key=groq_api_key, model_name=groq_model_name)
 
     contextualize_q_system_prompt = "Given a chat history and the latest user question \
     which might reference context in the chat history, formulate a standalone question \
@@ -95,6 +100,7 @@ def create_conversational_chain(language_model: ChatGroq, retriever: FAISS):
     If you don't know the answer, just say that you don't know. \
 
     {context}.
+    Do not include, "According to the context" in the final output
     """
 
     qa_prompt = ChatPromptTemplate.from_messages(
@@ -125,35 +131,32 @@ def initialize_session_state():
     if "messages" not in st.session_state:
         st.session_state['messages'] = []
 
-def handle_user_query(get_conversation_chain: RunnableWithMessageHistory, user_query: str):
+def handle_user_query(get_conversation_chain: create_retrieval_chain, user_query: str):
     """
     Handle the user query and get the response from the conversation chain.
 
     Args:
-        conversational_rag_chain (RunnableWithMessageHistory): The conversational retrieval chain.
+        conversational_rag_chain (create_retrieval_chain): The conversational retrieval chain.
         user_query (str): The user's query.
 
     Returns:
         str: The response from the conversation rag chain.
     """
-    response = get_conversation_chain.invoke(
-    {"input": user_query},
-    config={
-        "configurable": {"session_id": "mental_health"}
-    },
-    )
-    st.session_state['chat_history'].append((user_query, response["answer"]))
+    response = get_conversation_chain.invoke({"input": user_query, "chat_history": st.session_state['chat_history']})
+
+    print(response)
+    st.session_state['chat_history'].extend([HumanMessage(content=user_query), response["answer"]])
 
     return response["answer"]
 
-def display_chat_interface(conversational_rag_chain: RunnableWithMessageHistory):
+def display_chat_interface(conversation_chain: create_retrieval_chain):
     """
     Display the chat interface using Streamlit.
 
     Args:
-        conversational_rag_chain (RunnableWithMessageHistory): The conversational retrieval chain.
+        conversational_rag_chain (create_retrieval_chain): The conversational retrieval chain.
     """
-    st.title("Healthcare Chatbot")
+    st.title("Mental Healthcare Chatbot")
 
     # Display chat messages from history on app rerun
     for message in st.session_state.messages:
@@ -167,7 +170,7 @@ def display_chat_interface(conversational_rag_chain: RunnableWithMessageHistory)
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": user_query})
 
-        response = handle_user_query(conversational_rag_chain, user_query)
+        response = handle_user_query(conversation_chain, user_query)
 
         # Display assistant response in chat message container
         st.chat_message("assistant").markdown(response)
@@ -178,21 +181,11 @@ def main():
     """
     Main function to run the Streamlit application.
     """
-    document_chunks = load_and_split_documents()
-    language_model, vector_database = initialize_models_and_store(document_chunks)
-    conversation_chain = create_conversational_chain(language_model, vector_database)
-
-    store = {}
-    conversational_rag_chain = RunnableWithMessageHistory(
-    conversation_chain,
-    lambda session_id: get_session_history(store, session_id),
-    input_messages_key="input",
-    history_messages_key="chat_history",
-    output_messages_key="answer",
-    )
+    retriever = load_faiss_vector_store()
+    conversation_chain = create_conversational_chain(retriever)
 
     initialize_session_state()
-    display_chat_interface(conversational_rag_chain)
+    display_chat_interface(conversation_chain)
 
 if __name__ == "__main__":
     main()
