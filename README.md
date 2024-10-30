@@ -15,6 +15,7 @@ The healthcare chatbot leverages LangChain, a framework for integrating retrieva
 ## Structure
 
 - **/data**: Sample data and resources, including PDF files used for demonstration.
+- - **app.py**: main script to build chatbot
 
 ## Getting Started
 
