@@ -17,7 +17,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.messages import HumanMessage
 
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_PROJECT"]="HealthCare Chatbot"
+os.environ["LANGCHAIN_PROJECT"]="Mental HealthCare Chatbot"
 
 # Load environment variables
 load_dotenv(override=True)
