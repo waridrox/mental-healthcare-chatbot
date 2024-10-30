@@ -19,7 +19,7 @@ os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_PROJECT"]="Mental HealthCare Chatbot"
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 
 def load_and_split_documents(chunk_size: int = 500, chunk_overlap: int = 50):
@@ -179,7 +179,7 @@ def display_chat_interface(conversation_chain: create_retrieval_chain):
     Args:
         conversational_rag_chain (create_retrieval_chain): The conversational retrieval chain.
     """
-    st.title("Healthcare Chatbot")
+    st.title("Mental Healthcare Chatbot")
 
     # Display chat messages from history on app rerun
     for message in st.session_state.messages:
