@@ -1,4 +1,5 @@
 import os
+import pickle
 import streamlit as st
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
@@ -6,6 +7,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_chroma import Chroma
+
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.prompts import MessagesPlaceholder
@@ -16,13 +19,12 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.messages import HumanMessage
 
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_PROJECT"]="Mental HealthCare Chatbot v0.1.0"
+os.environ["LANGCHAIN_PROJECT"]="HealthCare Chatbot"
 
 # Load environment variables
 load_dotenv(override=True)
 
-
-def load_and_split_documents(chunk_size: int = 500, chunk_overlap: int = 50):
+def load_faiss_vector_store(vectorstore_filename: str = "faiss_vectorstore.pkl"):
     """
     Load PDF documents from a directory and split them into chunks.
 
@@ -33,7 +35,14 @@ def load_and_split_documents(chunk_size: int = 500, chunk_overlap: int = 50):
     Returns:
         list: List of document chunks.
     """
-    directory_path = "data"
+    try:
+
+        with open(vectorstore_filename, "rb") as f:
+            vector_store = pickle.load(f)
+
+        retriever=vector_store.as_retriever()
+
+        return retriever
     
     pdf_loader = DirectoryLoader(directory_path, glob="*.pdf", loader_cls=PyPDFLoader)
     pdf_documents = pdf_loader.load()
