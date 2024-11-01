@@ -1,4 +1,4 @@
-# LangChain Healthcare Chatbot
+# Mental Healthcare Chatbot
 
 This repository contains a healthcare chatbot application built using LangChain and Streamlit, focusing on mental health support. The chatbot utilizes advanced features including PDF search using a vector database (FAISS) to provide relevant responses.
 
@@ -14,8 +14,8 @@ The healthcare chatbot leverages LangChain, a framework for integrating retrieva
 
 ## Structure
 
-- **/data**: Sample data and resources, including PDF files used for demonstration.
-- - **app.py**: main script to build chatbot
+- **faiss_vectorstore.pkl**: FAISS vector store contents pickle file
+- **app.py**: main script to build and run chatbot
 
 ## Getting Started
 
