@@ -74,30 +74,6 @@ def initialize_models_and_store(document_chunks: list):
 
     return language_model, retriever
 
-def initialize_models_and_store2(vector_index_path: str):
-    """
-    Initialize the language model and vector store.
-
-    Args:
-        document_chunks (list): List of document chunks.
-
-    Returns:
-        tuple: Language model and vector retriever.
-    """
-    groq_api_key = os.getenv('GROQ_API_KEY')
-    if not groq_api_key:
-        raise ValueError("GROQ API key not found.")
-    
-    groq_model_name = os.getenv('GROQ_MODEL_NAME')
-    language_model = ChatGroq(groq_api_key=groq_api_key, model_name=groq_model_name)
-
-    embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME")
-    embeddings_model = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={'device': "cpu"})
-    vector_database = FAISS.load_local(document_chunks, embeddings_model)
-    retriever=vector_database.as_retriever()
-
-    return language_model, retriever
-
 def create_conversational_chain(language_model: ChatGroq, retriever: FAISS):
     """
     Create the conversational retrieval chain.
