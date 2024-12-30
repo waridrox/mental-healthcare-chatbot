@@ -1,6 +1,3 @@
-import os
-import pickle
-import streamlit as st
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -176,6 +173,7 @@ def main():
 
     initialize_session_state()
     display_chat_interface(conversation_chain)
+
 
 if __name__ == "__main__":
     main()
