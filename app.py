@@ -1,3 +1,4 @@
+import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -19,6 +20,7 @@ os.environ["LANGCHAIN_PROJECT"]="Mental HealthCare Chatbot"
 # Load environment variables
 load_dotenv(override=True)
 
+<<<<<<< HEAD
 def load_faiss_vector_store(vectorstore_filename: str = "faiss_vectorstore.pkl"):
     """
     Load PDF documents from a directory and split them into chunks.
@@ -162,6 +164,10 @@ def display_chat_interface(conversation_chain: create_retrieval_chain):
         st.chat_message("assistant").markdown(response)
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
+=======
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_PROJECT"]=" Mental HealthCare Chatbot"
+>>>>>>> 7b7292e (feat: add LangChain tracing support)
 
 def main():
     """
