@@ -6,11 +6,10 @@ from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 
 def load_and_split_documents(directory_path: str = "data") -> List[str]:
     """
-    Load PDF documents from a directory and split them into chunks.
+    Load PDF documents from a directory.
 
     Parameters:
-        chunk_size (int): Size of each chunk.
-        chunk_overlap (int): Overlap between chunks.
+        directory_path (int): folder path of data.
 
     Returns:
         list: List of document chunks.
