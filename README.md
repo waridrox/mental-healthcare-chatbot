@@ -2,6 +2,8 @@
 
 This repository contains a healthcare chatbot application built using LangChain and Streamlit, focusing on mental health support. The chatbot utilizes advanced features including PDF search using a vector database (FAISS) to provide relevant responses.
 
+https://github.com/user-attachments/assets/da3bf6fb-4b69-4584-8957-ab0db82d548d
+
 ## Overview
 
 The healthcare chatbot leverages LangChain, a framework for integrating retrieval and generation models, to offer personalized mental health assistance. It includes capabilities for querying information within PDF documents stored in a vector database.
