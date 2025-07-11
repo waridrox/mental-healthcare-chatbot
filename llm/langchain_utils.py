@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -36,39 +36,24 @@ def get_embeddings(provider: str = "huggingface"):
     return embeddings
 
 
-def get_llm(provider: str = "azure"):
-    """
-    Retrieve an LLM model based on the specified provider.
-
-    Args:
-        provider (str): The provider for the LLM. Defaults to 'azure'.
-
-    Returns:
-        LLM model instance.
-    """
-    if provider.lower() == "azure":
+def get_llm(provider: str = "perplexity"):
+    if provider.lower() == "perplexity":
         try:
-            model = AzureChatOpenAI(
-                openai_api_key=st.secrets["AZURE_OAI_KEY"],
-                azure_endpoint=st.secrets["AZURE_OPENAI_ENDPOINT"],
-                azure_deployment=st.secrets["AZURE_OPENAI_DEPLOYMENT"],
-                openai_api_version=st.secrets["AZURE_OPENAI_API_VERSION"],
-                openai_api_type="openai",
+            # Try secrets first, then environment variables
+            api_key = st.secrets.get("PERPLEXITY_API_KEY") or os.environ.get("PERPLEXITY_API_KEY")
+            model_name = st.secrets.get("PERPLEXITY_MODEL_NAME") or os.environ.get("PERPLEXITY_MODEL_NAME", "llama-3.1-sonar-small-128k-online")
+            
+            if not api_key:
+                raise ValueError("PERPLEXITY_API_KEY not found in secrets or environment")
+            
+            model = ChatOpenAI(
+                api_key=api_key,
+                base_url="https://api.perplexity.ai",
+                model=model_name,
+                temperature=0.7,
             )
         except Exception as e:
-            raise ValueError(f"Failed to initialize Azure OpenAI model: {e}")
-
-    elif provider.lower() == "groq":
-        try:
-            model = ChatGroq(
-                groq_api_key=st.secrets["GROQ_API_KEY"],
-                model_name=st.secrets["GROQ_MODEL_NAME"],
-            )
-        except Exception as e:
-            raise ValueError(f"Failed to initialize Groq model: {e}")
-    else:
-        raise ValueError(f"Unsupported provider for LLM: {provider}")
-
+            raise ValueError(f"Failed to initialize Perplexity model: {e}")
     return model
 
 
@@ -82,7 +67,7 @@ def create_conversational_chain(retriever: FAISS):
     Returns:
         create_retrieval_chain: The conversational retrieval chain.
     """
-    language_model = get_llm(provider="groq")
+    language_model = get_llm(provider="perplexity")
 
     contextualize_q_system_prompt = "Given a chat history and the latest user question \
     which might reference context in the chat history, formulate a standalone question \
