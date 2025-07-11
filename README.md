@@ -19,8 +19,9 @@ The healthcare chatbot leverages LangChain, a framework for integrating retrieva
 1. **Installation**: Clone this repository and install dependencies specified in `requirements.txt`.
 
    ```bash
-   git clone <repository_url>
-   cd <repository_name>
+   git clone https://github.com/waridrox/mental-healthcare-chatbot.git
+   cd mental-healthcare-chatbot
+   create a python or conda env
    pip install -r requirements.txt
    ```
 
