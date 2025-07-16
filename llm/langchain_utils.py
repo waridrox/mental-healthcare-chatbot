@@ -1,8 +1,7 @@
 import os
 import streamlit as st
 
-from langchain_openai import AzureChatOpenAI, ChatOpenAI
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
@@ -24,7 +23,7 @@ def get_embeddings(provider: str = "huggingface"):
     """
     if provider.lower() == "huggingface":
         try:
-            model_name = st.secrets["EMBEDDING_MODEL_NAME"]
+            model_name = st.secrets.get("EMBEDDING_MODEL_NAME", "BAAI/bge-small-en-v1.5")
             embeddings = HuggingFaceEmbeddings(
                 model_name=model_name, model_kwargs={"device": "cpu"}
             )
@@ -36,24 +35,35 @@ def get_embeddings(provider: str = "huggingface"):
     return embeddings
 
 
-def get_llm(provider: str = "perplexity"):
-    if provider.lower() == "perplexity":
+def get_llm(provider: str = "gemini"):
+    """
+    Retrieve a language model instance.
+
+    Args:
+        provider (str): The LLM provider. Defaults to 'gemini'.
+
+    Returns:
+        Language model instance.
+    """
+    if provider.lower() == "gemini":
         try:
             # Try secrets first, then environment variables
-            api_key = st.secrets.get("PERPLEXITY_API_KEY") or os.environ.get("PERPLEXITY_API_KEY")
-            model_name = st.secrets.get("PERPLEXITY_MODEL_NAME") or os.environ.get("PERPLEXITY_MODEL_NAME", "llama-3.1-sonar-small-128k-online")
-            
+            api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+            model_name = st.secrets.get("GEMINI_MODEL_NAME") or os.environ.get("GEMINI_MODEL_NAME", "gemini-2.0-flash")
+
             if not api_key:
-                raise ValueError("PERPLEXITY_API_KEY not found in secrets or environment")
-            
-            model = ChatOpenAI(
-                api_key=api_key,
-                base_url="https://api.perplexity.ai",
+                raise ValueError("GEMINI_API_KEY not found in secrets or environment")
+
+            model = ChatGoogleGenerativeAI(
                 model=model_name,
+                google_api_key=api_key,
                 temperature=0.7,
             )
         except Exception as e:
-            raise ValueError(f"Failed to initialize Perplexity model: {e}")
+            raise ValueError(f"Failed to initialize Gemini model: {e}")
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
     return model
 
 
@@ -67,7 +77,7 @@ def create_conversational_chain(retriever: FAISS):
     Returns:
         create_retrieval_chain: The conversational retrieval chain.
     """
-    language_model = get_llm(provider="perplexity")
+    language_model = get_llm(provider="gemini")
 
     contextualize_q_system_prompt = "Given a chat history and the latest user question \
     which might reference context in the chat history, formulate a standalone question \

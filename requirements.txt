@@ -1,13 +1,12 @@
 langchain == 0.3.12
 langchain-community == 0.3.12
-langchain-groq == 0.2.1
+langchain-google-genai == 2.0.8
 faiss-cpu == 1.9.0.post1
 langchain-huggingface == 0.1.2
 python-dotenv == 1.0.1
 streamlit == 1.41.1
 pypdf == 5.1.0
 umap-learn == 0.5.7
-langchain-openai == 0.2.12
 flake8 == 7.1.1
 pre-commit == 4.0.1
 pytest == 8.3.4
