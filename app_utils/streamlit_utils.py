@@ -142,6 +142,7 @@ def display_chat_interface(conversation_chain) -> None:
     _ensure_session_state_internal()
 
     st.header("Mental Healthcare Chatbot")
+    st.caption("Ask about your illness, symptoms, or share what's on your mind. 🤒😷🤧")
 
     # Show last error if present
     if st.session_state.get("last_error"):

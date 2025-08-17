@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
@@ -23,7 +23,9 @@ def get_embeddings(provider: str = "huggingface"):
     """
     if provider.lower() == "huggingface":
         try:
-            model_name = st.secrets.get("EMBEDDING_MODEL_NAME", "BAAI/bge-small-en-v1.5")
+            model_name = st.secrets.get("EMBEDDING_MODEL_NAME") or os.environ.get(
+                "EMBEDDING_MODEL_NAME", "BAAI/bge-small-en-v1.5"
+            )
             embeddings = HuggingFaceEmbeddings(
                 model_name=model_name, model_kwargs={"device": "cpu"}
             )
@@ -35,32 +37,57 @@ def get_embeddings(provider: str = "huggingface"):
     return embeddings
 
 
-def get_llm(provider: str = "gemini"):
+def get_llm(provider: str = "openrouter"):
     """
     Retrieve a language model instance.
 
     Args:
-        provider (str): The LLM provider. Defaults to 'gemini'.
+        provider (str): The LLM provider. Defaults to 'openrouter'.
 
     Returns:
         Language model instance.
     """
-    if provider.lower() == "gemini":
+    if provider.lower() == "openrouter":
         try:
-            # Try secrets first, then environment variables
-            api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
-            model_name = st.secrets.get("GEMINI_MODEL_NAME") or os.environ.get("GEMINI_MODEL_NAME", "gemini-2.0-flash")
+            api_key = os.environ.get("OPENROUTER_API_KEY") or st.secrets.get("OPENROUTER_API_KEY")
+            model_name = os.environ.get("OPENROUTER_MODEL_NAME") or st.secrets.get(
+                "OPENROUTER_MODEL_NAME", "openai/gpt-5.2"
+            )
 
             if not api_key:
-                raise ValueError("GEMINI_API_KEY not found in secrets or environment")
+                raise ValueError("OPENROUTER_API_KEY not found in environment or secrets")
 
-            model = ChatGoogleGenerativeAI(
+            model = ChatOpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key,
                 model=model_name,
-                google_api_key=api_key,
+                temperature=0.7,
+                max_tokens=1024,
+                default_headers={
+                    "HTTP-Referer": "http://localhost:8501", # Optional. Site URL for rankings on openrouter.ai.
+                    "X-OpenRouter-Title": "Mental HealthCare Chatbot", # Optional. Site title for rankings on openrouter.ai.
+                }
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to initialize OpenRouter model: {e}")
+    elif provider.lower() == "openai":
+        try:
+            # Try environment variables first, then secrets
+            api_key = os.environ.get("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+            model_name = os.environ.get("OPENAI_MODEL_NAME") or st.secrets.get(
+                "OPENAI_MODEL_NAME", "gpt-4o-mini"
+            )
+
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY not found in environment or secrets")
+
+            model = ChatOpenAI(
+                api_key=api_key,
+                model=model_name,
                 temperature=0.7,
             )
         except Exception as e:
-            raise ValueError(f"Failed to initialize Gemini model: {e}")
+            raise ValueError(f"Failed to initialize OpenAI model: {e}")
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
@@ -77,7 +104,7 @@ def create_conversational_chain(retriever: FAISS):
     Returns:
         create_retrieval_chain: The conversational retrieval chain.
     """
-    language_model = get_llm(provider="gemini")
+    language_model = get_llm(provider="openrouter")
 
     contextualize_q_system_prompt = "Given a chat history and the latest user question \
     which might reference context in the chat history, formulate a standalone question \
